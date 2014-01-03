@@ -1,0 +1,7 @@
+{
+  :twitter {
+    :consumer-key ""
+    :consumer-secret ""
+    :access-token ""
+    :access-token-secret ""
+  }}

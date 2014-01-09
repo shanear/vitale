@@ -1,10 +1,15 @@
 # vitale
 
-A Clojure library designed to ... well, that part is up to you.
+Scans twitter for tweets related to the teams in the NBA.
 
 ## Usage
 
-FIXME
+Training:
+Load up the repl, and run (gather-training-tweets)
+in another repl, run (start-training)
+
+For each tweet you classify, the probability that the unigram analyzer generated
+of that tweet being NBA related will be printed for you. See how well it's doing!
 
 ## License
 

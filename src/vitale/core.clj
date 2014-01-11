@@ -37,45 +37,57 @@
   []
   (statuses-filter
     :params {
-      :track (join "," (map :name (teams)))}
+      :track (join "," (map :name (get-teams)))}
     :oauth-creds my-creds
     :callbacks *gather-training-tweets-callback*))
 
-(defn print-if-nba
-  "print string if it's predicted to be related to the NBA"
-  [tweet-str]
-  (if (> (tweet-tag-p :nba tweet-str) 0.59) (println tweet-str)))
+; (defn print-if-nba
+;   "print string if it's predicted to be related to the NBA"
+;   [tweet-str]
+;   (if (> (team-p :nba tweet-str) 0.59) (println tweet-str)))
 
-(def ^:dynamic
-    *stream-nba-tweets-callback*
-    (AsyncStreamingCallback.
-      (comp print-if-nba #(:text %) json/read-json #(str %2))
-      (comp println response-return-everything)
-      exception-print))
+; (def ^:dynamic
+;     *stream-nba-tweets-callback*
+;     (AsyncStreamingCallback.
+;       (comp print-if-nba #(:text %) json/read-json #(str %2))
+;       (comp println response-return-everything)
+;       exception-print))
 
-(defn stream-nba-tweets
-  "begin scanning twitter and "
-  []
-  (statuses-filter
-    :params {
-      :track (join "," (map :name (teams)))}
-    :oauth-creds my-creds
-    :callbacks *stream-nba-tweets-callback*))
+; (defn stream-nba-tweets
+;   "begin scanning twitter and "
+;   []
+;   (statuses-filter
+;     :params {
+;       :track (join "," (map :name (get-teams)))}
+;     :oauth-creds my-creds
+;     :callbacks *stream-nba-tweets-callback*))
 
-(defn classify-tweet
-  [tweet]
-  (println (:text tweet))
-  (println "Is this tweet NBA related? (y)es (n)o (d)on't know")
-  (let [response (read-line)]
-    (case response
-      "y" (decompose-tweet tweet :nba)
-      "n" (decompose-tweet tweet)
-      (delete-tweet tweet)))
-  (println (format "Tweet NBA P: %.9f" (tweet-tag-p :nba (:text tweet))))
-  (println "\n"))
+(defn find-teams-in
+  [s]
+  (filter
+    #(re-find (re-pattern %) (.toLowerCase s))
+    (map #(.toLowerCase (:name %)) (get-teams))))
 
-(defn start-training
-  []
-  (doseq [tweet (load-tweets)] (classify-tweet tweet)))
+ (defn classify-team-in-tweet
+   [tweet team]
+   (println (:text tweet))
+   (println (format "Does %s refer to the NBA team? (y)es (n)o (d)on't know" team))
+   (let [response (read-line)]
+     (case response
+       "y" (record-unigrams (:text tweet) team true)
+       "n" (record-unigrams (:text tweet) team false)
+       (println "Moving on...")))
+   (println (format "Tweet NBA P: %.9f" (team-p team (:text tweet))))
+   (println "\n"))
 
-(defn -main [& args] (start-training))
+ (defn classify-tweet
+   [tweet]
+   (doseq [team (find-teams-in (:text tweet))]
+     (classify-team-in-tweet tweet team))
+   (delete-tweet tweet))
+
+ (defn start-training
+   []
+   (doseq [tweet (load-tweets)] (classify-tweet tweet)))
+
+(defn -main [& args] 1)

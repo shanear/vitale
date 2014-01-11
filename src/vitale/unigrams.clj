@@ -5,10 +5,10 @@
 
 (defn get-unigram
   "find occurance data of unigram from DB"
-  [word]
+  [team word]
   (sql/with-db-connection [db-con (config :db :url)]
     (first (sql/query db-con
-      ["select * from unigrams where word=?", word]))))
+      ["select * from unigrams where team_name=? and word=?", team, word]))))
 
 (defn load-unigrams
   "load all unigrams"
@@ -18,28 +18,30 @@
         ["select * from unigrams"]))))
 
 (defn unigram-p
-  "Get the probability of a tweet containing the unigram-str being related to the tag"
-  [tag unigram-str]
-  (let [unigram (or (get-unigram unigram-str) {})
-        total-count (get unigram :total 1)
-        tag-count (get unigram tag 0)]
-    (if (< total-count 2) 2/5 ; if not enough data, default to 40%
-      (if (zero? tag-count) 1/100 ; Add padding for extremes
-        (if (= tag-count total-count) 99/100
-          (/ tag-count total-count))))))
+  "Get the probability of a tweet containing the unigram-str being related to the NBA team"
+  [team unigram-str]
+  (let [unigram (or (get-unigram team unigram-str) {})
+        non-nba-count (get unigram :non_nba 1)
+        nba-count (get unigram :nba 0)
+        total-count (+ nba-count non-nba-count)]
+    (if (< total-count 2)     2/5     ; if not enough data, default to 40% P
+    (if (zero? nba-count)     1/100   ; Add padding for extremes
+    (if (zero? non-nba-count) 99/100
+      (/ nba-count total-count))))))
 
 (defn inc-unigram
-  "record a sighting of the unigram as a part of the tag"
-  [word tags]
-  (if-let [unigram (get-unigram word)]
+  "record unigram relating to a word containing the team name and whether it was NBA related"
+  [team word nba?]
+  (let [col     (if nba? :nba :non_nba)
+        unigram (get-unigram team word)]
     (sql/with-db-connection [db-con (config :db :url)]
-      (let [updates (reduce #(assoc % %2 (inc (get % %2 0))) unigram (conj tags :total))]
-        (do
-          (pprint (merge {:word word} updates))
-          (sql/update! db-con :unigrams updates ["word = ?" word]))))
-    (let [unigram (merge {:word word :total 1} (zipmap tags (repeat 1)))]
-      (do
-        (print "New word...")
-        (pprint unigram)
-        (sql/with-db-connection [db-con (config :db :url)]
-          (sql/insert! db-con :unigrams unigram))))))
+      (if unigram
+        (let [update {col (inc (get unigram col 0))}]
+          (do
+            (pprint (merge unigram update))
+            (sql/update! db-con :unigrams update ["team_name=? AND word = ?" team, word])))
+        (let [new-unigram {:team_name team :word word col 1}]
+          (do
+            (print "New word...")
+            (pprint new-unigram)
+            (sql/insert! db-con :unigrams new-unigram)))))))

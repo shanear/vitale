@@ -56,19 +56,21 @@
       ((partial filter #(not= 1 (count %))))
       ))
 
-(defn tweet-tag-p
-  "the probability that a tweet is related to the tag"
-  [tag tweet-str]
+(defn record-unigrams
+  "break a tweet down into its unigrams and record tagging"
+  [tweet-str team nba?]
+  (println tweet-str)
+  (doseq
+    [word (disj (set (tweet-unigrams tweet-str)) team)]
+    (inc-unigram team word nba?)))
+
+(defn team-p
+  "the probability that a tweet containing the NBA team name is referencing the NBA"
+  [team tweet-str]
   (let [unigrams (tweet-unigrams tweet-str)
-        ps (map (partial unigram-p tag) unigrams)
-        top-ps (take 5 (sort-by #(- (Math/abs (- 0.5 (float %)))) ps))]
+        ps       (map (partial unigram-p team) unigrams)
+
+        ; Use top 4 most "interesting" words to calculate probability
+        top-ps   (take 4 (sort-by #(- (Math/abs (- 0.5 (float %)))) ps))]
   (float (/ (reduce + top-ps) (count top-ps)))))
 
-(defn decompose-tweet
-  "break a tweet down into its unigrams and record tagging"
-  [tweet & tags]
-  (println (:text tweet))
-  (delete-tweet tweet)
-  (doseq
-    [unigram (tweet-unigrams (:text tweet))]
-    (inc-unigram unigram tags)))

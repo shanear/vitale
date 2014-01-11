@@ -23,9 +23,12 @@
   (sql/with-db-connection [db-con (config :db :url)]
     (sql/db-do-commands db-con
       (sql/create-table-ddl :unigrams
-        [:word :varchar "NOT NULL" "PRIMARY KEY"]
-        [:total :integer "NOT NULL" "DEFAULT 0"]
-        [:nba :integer "NOT NULL" "DEFAULT 0"]))))
+        [:id :serial "PRIMARY KEY"]
+        [:team_name :varchar "NOT NULL"]
+        [:word :varchar "NOT NULL"]
+        [:nba :integer "NOT NULL" "DEFAULT 0"]
+        [:non_nba :integer "NOT NULL" "DEFAULT 0"])
+      "CREATE UNIQUE INDEX ON unigrams (team_name, word)")))
 
 (defn -main []
   (print "Creating database tables...") (flush)

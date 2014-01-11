@@ -9,7 +9,7 @@
   (sql/with-db-connection [db-con (config :db :url)]
     (sql/insert! db-con :teams (assoc (dissoc team :api-id) :api_id (team :api-id)))))
 
-(defn teams
+(defn get-teams
   []
   (sql/with-db-connection [db-con (config :db :url)]
     (map
